@@ -1,0 +1,48 @@
+# One command to run BiteBox: `docker compose up --build` (after copying .env.example to .env)
+services:
+  mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?set in .env}
+      MYSQL_DATABASE: bitebox_db
+      MYSQL_USER: bitebox_app
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?set in .env}
+    ports:
+      - "3307:3306"   # 3307 on the host so it doesn't clash with a local MySQL on 3306
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build: ./backend
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__BiteBox: "Server=mysql;Port=3306;Database=bitebox_db;User=bitebox_app;Password=${MYSQL_PASSWORD};"
+      BiteBox__Database__MigrateOnStartup: "true"
+      BiteBox__Seed__Enabled: "true"
+      BiteBox__Seed__DemoPassword: ${DEMO_PASSWORD:-BiteBox@2026}
+      BiteBox__Swagger__Enabled: "true"
+      # Local demo runs on plain http://localhost:8080. Set to "true" behind HTTPS in any real deployment.
+      BiteBox__Security__SecureCookies: "false"
+      BiteBox__AI__Provider: ${AI_PROVIDER:-Rules}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+    volumes:
+      - uploads:/app/wwwroot/uploads
+
+  web:
+    build: ./frontend/bitebox-web
+    depends_on:
+      - api
+    ports:
+      - "8080:80"
+
+volumes:
+  mysql-data:
+  uploads:

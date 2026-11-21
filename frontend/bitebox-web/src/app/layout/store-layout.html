@@ -1,0 +1,159 @@
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="header">
+  <div class="container bar">
+    <button class="icon-btn only-mobile" type="button" (click)="mobileNav.set(!mobileNav())" aria-label="Open menu" [attr.aria-expanded]="mobileNav()">
+      <bb-icon [name]="mobileNav() ? 'close' : 'menu'" />
+    </button>
+
+    <a routerLink="/" aria-label="BiteBox home"><bb-logo /></a>
+
+    <nav class="nav" [class.open]="mobileNav()" aria-label="Main">
+      <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Home</a>
+      <a routerLink="/menu" routerLinkActive="active">Menu</a>
+      @if (auth.isLoggedIn() && !auth.isStaff()) {
+        <a routerLink="/account/orders" routerLinkActive="active">My orders</a>
+      }
+      @if (auth.isStaff()) {
+        <a routerLink="/admin" class="admin-link"><bb-icon name="dashboard" [size]="16" /> BiteBox Admin</a>
+      }
+      <form class="search only-mobile" (submit)="$event.preventDefault(); submitSearch()">
+        <input class="input" name="q" [(ngModel)]="search" placeholder="Search dishes…" aria-label="Search dishes" />
+      </form>
+    </nav>
+
+    <form class="search only-desktop" role="search" (submit)="$event.preventDefault(); submitSearch()">
+      <bb-icon name="search" [size]="18" />
+      <input name="q" [(ngModel)]="search" placeholder="Search biryani, pizza, dosa…" aria-label="Search dishes" />
+    </form>
+
+    <div class="actions">
+      @if (auth.isLoggedIn() && !auth.isStaff()) {
+        <div class="pop-wrap">
+          <button class="icon-btn" type="button" (click)="toggleBell()" aria-label="Notifications" [attr.aria-expanded]="bellOpen()">
+            <bb-icon name="bell" />
+            @if (feed()?.unreadCount) { <span class="dot">{{ feed()!.unreadCount }}</span> }
+          </button>
+          @if (bellOpen()) {
+            <div class="popover bell fade-up">
+              <h4>Notifications</h4>
+              @for (n of feed()?.items ?? []; track n.id) {
+                <a class="note" [routerLink]="n.link ?? '/account/orders'" [class.unread]="!n.isRead">
+                  <strong>{{ n.title }}</strong><span>{{ n.message }}</span><small class="muted">{{ n.createdAt | timeAgo }}</small>
+                </a>
+              } @empty { <p class="muted small">No notifications yet. Order updates will appear here.</p> }
+            </div>
+          }
+        </div>
+      }
+
+      <button class="cart-btn" type="button" (click)="cart.drawerOpen.set(true)" aria-label="Open cart">
+        <bb-icon name="cart" />
+        <span class="only-desktop">Cart</span>
+        @if (cart.count()) { <span class="count">{{ cart.count() }}</span> }
+      </button>
+
+      @if (auth.user(); as user) {
+        <div class="pop-wrap">
+          <button class="avatar" type="button" (click)="accountMenu.set(!accountMenu()); bellOpen.set(false)" [attr.aria-expanded]="accountMenu()" aria-label="Account menu">
+            {{ user.fullName.charAt(0) }}
+          </button>
+          @if (accountMenu()) {
+            <div class="popover menu fade-up">
+              <div class="who"><strong>{{ user.fullName }}</strong><span class="muted small">{{ user.email }}</span></div>
+              @if (auth.isStaff()) {
+                <a routerLink="/admin"><bb-icon name="dashboard" [size]="18" /> BiteBox Admin</a>
+              } @else {
+                <a routerLink="/account/orders"><bb-icon name="receipt" [size]="18" /> Orders</a>
+                <a routerLink="/account/favorites"><bb-icon name="heart" [size]="18" /> Favourites</a>
+                <a routerLink="/account/addresses"><bb-icon name="pin" [size]="18" /> Addresses</a>
+                <a routerLink="/account/profile"><bb-icon name="user" [size]="18" /> Profile</a>
+              }
+              <button type="button" (click)="auth.logout()"><bb-icon name="logout" [size]="18" /> Sign out</button>
+            </div>
+          }
+        </div>
+      } @else if (auth.ready()) {
+        <a class="btn btn-dark btn-sm" routerLink="/login">Sign in</a>
+      }
+    </div>
+  </div>
+</header>
+
+<main id="main">
+  <router-outlet />
+</main>
+
+<footer class="footer">
+  <div class="container cols">
+    <div>
+      <bb-logo [light]="true" />
+      <p class="tag">Every Bite, Anytime.</p>
+      <p class="small fine">Freshly cooked in our kitchen in Bengaluru and delivered hot, or ready for pickup in minutes.</p>
+    </div>
+    <div>
+      <h4>Order</h4>
+      <a routerLink="/menu">Full menu</a>
+      <a [routerLink]="['/menu']" [queryParams]="{ vegetarian: true }">Vegetarian</a>
+      <a [routerLink]="['/menu']" [queryParams]="{ category: 'biryani-rice' }">Biryani</a>
+      <a [routerLink]="['/menu']" [queryParams]="{ category: 'desserts' }">Desserts</a>
+    </div>
+    <div>
+      <h4>Account</h4>
+      <a routerLink="/account/orders">Track an order</a>
+      <a routerLink="/account/favorites">Favourites</a>
+      <a routerLink="/register">Create account</a>
+    </div>
+    <div>
+      <h4>Visit us</h4>
+      <p class="small fine">BiteBox Kitchen, 100 Feet Road, Indiranagar, Bengaluru 560038<br />Open daily 11:00–23:30</p>
+    </div>
+  </div>
+  <div class="container legal small">© {{ year }} BiteBox. A college project built with Angular, ASP.NET Core &amp; MySQL. Food photography via Unsplash.</div>
+</footer>
+
+<!-- Mini-cart drawer -->
+@if (cart.drawerOpen()) {
+  <div class="scrim" (click)="cart.drawerOpen.set(false)" aria-hidden="true"></div>
+  <aside class="drawer" role="dialog" aria-modal="true" aria-label="Your cart">
+    <div class="drawer-head">
+      <h3>Your cart</h3>
+      <button class="icon-btn" type="button" (click)="cart.drawerOpen.set(false)" aria-label="Close cart"><bb-icon name="close" /></button>
+    </div>
+    @if (cart.cart().items.length) {
+      <div class="drawer-body">
+        @for (item of cart.cart().items; track item.productId) {
+          <div class="line">
+            <bb-img class="line-img" [src]="item.imageUrl" [alt]="item.name" />
+            <div class="line-info">
+              <div class="row"><bb-veg [veg]="item.isVegetarian" /><a [routerLink]="['/menu', item.slug]">{{ item.name }}</a></div>
+              <span class="muted small">{{ item.unitPrice | inr }} each</span>
+              @if (!item.inStock) { <span class="badge badge-danger">Unavailable</span> }
+            </div>
+            <div class="line-end">
+              <bb-stepper [value]="item.quantity" [small]="true" [disabled]="cart.busy()" (changed)="cart.setQuantity(item.productId, $event)" />
+              <strong>{{ item.lineTotal | inr }}</strong>
+            </div>
+          </div>
+        }
+      </div>
+      <div class="drawer-foot">
+        <div class="row"><span>Subtotal</span><span class="spacer"></span><strong>{{ cart.subtotal() | inr }}</strong></div>
+        <p class="muted small">Taxes, delivery and offers are calculated at checkout.</p>
+        <button class="btn btn-primary btn-block" type="button" (click)="checkout()">
+          {{ auth.isLoggedIn() ? 'Checkout' : 'Sign in to checkout' }} <bb-icon name="arrowRight" [size]="18" />
+        </button>
+        <a class="btn btn-ghost btn-block" routerLink="/cart">View full cart</a>
+      </div>
+    } @else {
+      <div class="drawer-empty">
+        <div class="art"><bb-icon name="bag" [size]="34" /></div>
+        <h3>Your cart is hungry</h3>
+        <p class="muted">Add a few dishes and they'll show up here.</p>
+        <a class="btn btn-primary" routerLink="/menu">Browse the menu</a>
+      </div>
+    }
+  </aside>
+}
+
+<bb-bitebot />

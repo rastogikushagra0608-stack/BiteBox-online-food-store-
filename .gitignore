@@ -1,0 +1,28 @@
+# .NET
+bin/
+obj/
+*.user
+.vs/
+TestResults/
+backend/src/BiteBox.API/wwwroot/uploads/
+
+# Node / Angular
+node_modules/
+dist/
+.angular/
+coverage/
+
+# Secrets & local env
+.env
+*.local.json
+appsettings.*.local.json
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# generated intermediate for the PDF report
+docs/report/BiteBox-Project-Report.html
